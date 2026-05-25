@@ -1,50 +1,80 @@
-# 🚀 Start Here - Smart Bus Pass System (No Docker)
+# 🚀 Start Here - Smart Bus Pass System
 
 ## Quick Start Guide for Local Development
 
 This guide will help you run the Smart Bus Pass System **locally on Windows without Docker**.
+
+## 🎯 What's Available
+
+✅ **Backend API** - FastAPI with 17 endpoints (Ready)  
+✅ **Frontend Website** - React web application (Ready)  
+✅ **Database** - SQLite (No installation needed)  
+✅ **Documentation** - Complete API docs
 
 ---
 
 ## Prerequisites
 
 ✅ **Python 3.11+** (You have Python 3.11.9 installed)  
+✅ **Node.js 18+** (Required for frontend)  
 ✅ **Windows PowerShell** (Built-in)  
 ✅ **Git** (For version control)
 
 ---
 
-## 🚀 Quick Start (2 Steps)
+## 🚀 Quick Start Options
 
-### Step 1: Open PowerShell
-Navigate to the project directory:
+### Option 1: Start Full System (Backend + Frontend) - Recommended
+
 ```powershell
-cd "C:\Users\Rishabh Kankariya\Desktop\Bus Pass System"
+.\start-full-system.ps1
 ```
 
-### Step 2: Run the Startup Script
+This will:
+- ✓ Start Backend API on http://localhost:8000
+- ✓ Start Frontend Website on http://localhost:3000
+- ✓ Open two PowerShell windows (one for each server)
+
+### Option 2: Start Backend Only
+
 ```powershell
 .\start-system.ps1
 ```
 
-**That's it!** The script will:
-- ✓ Create `.env` configuration file
-- ✓ Check Python installation
-- ✓ Install/update required packages
-- ✓ Initialize SQLite database
-- ✓ Start the FastAPI server
+Access at: http://localhost:8000/docs
+
+### Option 3: Start Frontend Only
+
+```powershell
+.\start-frontend.ps1
+```
+
+Access at: http://localhost:3000  
+*Note: Backend must be running for frontend to work*
 
 ---
 
 ## Access the Application
 
-Once the server starts, you can access:
+### Frontend Website (Main Application)
+**URL**: http://localhost:3000
 
-| Endpoint | URL | Description |
-|----------|-----|-------------|
-| **API Documentation** | http://localhost:8000/docs | Interactive Swagger UI |
-| **Health Check** | http://localhost:8000/health | API health status |
-| **Root Endpoint** | http://localhost:8000 | API information |
+Features:
+- 🏠 Landing page with features
+- 🔐 Login & Registration
+- 📊 User dashboard
+- 🎫 Book tickets
+- 🎟️ Buy passes
+- 📱 View bookings & passes
+- 👤 Profile management
+
+### Backend API (For Developers)
+**URL**: http://localhost:8000/docs
+
+Features:
+- 📚 Interactive API documentation (Swagger UI)
+- 🧪 Test endpoints directly
+- 🔍 View request/response schemas
 
 ---
 
