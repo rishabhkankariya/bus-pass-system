@@ -1,7 +1,7 @@
 """Complaint model"""
 
 from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Text
-from sqlalchemy.dialects.postgresql import UUID
+from app.core.types import UUID
 from sqlalchemy.sql import func
 import uuid
 import enum
@@ -37,15 +37,15 @@ class Complaint(Base):
     """Complaint model"""
     __tablename__ = "complaints"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     complaint_number = Column(String(50), unique=True, nullable=False, index=True)
     category = Column(Enum(ComplaintCategory), nullable=False)
     description = Column(Text, nullable=False)
-    booking_id = Column(UUID(as_uuid=True), ForeignKey("bookings.id"), nullable=True)
+    booking_id = Column(UUID(), ForeignKey("bookings.id"), nullable=True)
     status = Column(Enum(ComplaintStatus), nullable=False, default=ComplaintStatus.OPEN, index=True)
     priority = Column(Enum(ComplaintPriority), default=ComplaintPriority.NORMAL, index=True)
-    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    assigned_to = Column(UUID(), ForeignKey("users.id"), nullable=True, index=True)
     resolution = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

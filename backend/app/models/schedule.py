@@ -1,7 +1,7 @@
 """Schedule model"""
 
-from sqlalchemy import Column, Time, Boolean, DateTime, ForeignKey, ARRAY, Integer
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Time, Boolean, DateTime, ForeignKey, Integer
+from app.core.types import UUID, ARRAY
 from sqlalchemy.sql import func
 import uuid
 
@@ -12,9 +12,9 @@ class Schedule(Base):
     """Schedule model"""
     __tablename__ = "schedules"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    route_id = Column(UUID(as_uuid=True), ForeignKey("routes.id", ondelete="CASCADE"), nullable=False, index=True)
-    bus_id = Column(UUID(as_uuid=True), ForeignKey("buses.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    route_id = Column(UUID(), ForeignKey("routes.id", ondelete="CASCADE"), nullable=False, index=True)
+    bus_id = Column(UUID(), ForeignKey("buses.id", ondelete="CASCADE"), nullable=False, index=True)
     departure_time = Column(Time, nullable=False, index=True)
     arrival_time = Column(Time, nullable=False)
     days_of_week = Column(ARRAY(Integer), nullable=False)  # 0=Sunday, 6=Saturday

@@ -1,7 +1,7 @@
 """Bus pass models"""
 
 from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, Date, ForeignKey, Enum, Text
-from sqlalchemy.dialects.postgresql import UUID
+from app.core.types import UUID
 from sqlalchemy.sql import func
 import uuid
 import enum
@@ -20,7 +20,7 @@ class PassType(Base):
     """Pass type model"""
     __tablename__ = "pass_types"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     pass_name = Column(String(100), nullable=False)
     validity_days = Column(Integer, nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
@@ -37,15 +37,15 @@ class BusPass(Base):
     """Bus pass model"""
     __tablename__ = "bus_passes"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    pass_type_id = Column(UUID(as_uuid=True), ForeignKey("pass_types.id", ondelete="CASCADE"), nullable=False)
-    route_id = Column(UUID(as_uuid=True), ForeignKey("routes.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    pass_type_id = Column(UUID(), ForeignKey("pass_types.id", ondelete="CASCADE"), nullable=False)
+    route_id = Column(UUID(), ForeignKey("routes.id", ondelete="CASCADE"), nullable=False)
     pass_number = Column(String(50), unique=True, nullable=False, index=True)
     valid_from = Column(Date, nullable=False, index=True)
     valid_to = Column(Date, nullable=False, index=True)
     pass_status = Column(Enum(PassStatus), nullable=False, default=PassStatus.ACTIVE, index=True)
-    qr_code_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    qr_code_id = Column(UUID(), nullable=True, index=True)
     pdf_url = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

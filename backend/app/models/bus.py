@@ -1,7 +1,7 @@
 """Bus model"""
 
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Enum
-from sqlalchemy.dialects.postgresql import UUID
+from app.core.types import UUID
 from sqlalchemy.sql import func
 import uuid
 import enum
@@ -20,7 +20,7 @@ class Bus(Base):
     """Bus model"""
     __tablename__ = "buses"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     bus_number = Column(String(50), unique=True, nullable=False, index=True)
     total_seats = Column(Integer, nullable=False)
     bus_type = Column(Enum(BusType), nullable=False)

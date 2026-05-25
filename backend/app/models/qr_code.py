@@ -1,7 +1,7 @@
 """QR Code model"""
 
 from sqlalchemy import Column, String, Boolean, DateTime, Integer, Enum
-from sqlalchemy.dialects.postgresql import UUID
+from app.core.types import UUID
 from sqlalchemy.sql import func
 import uuid
 import enum
@@ -19,11 +19,11 @@ class QRCode(Base):
     """QR Code model"""
     __tablename__ = "qr_codes"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     qr_code_data = Column(String, unique=True, nullable=False)
     verification_token = Column(String(255), unique=True, nullable=False, index=True)
     qr_type = Column(Enum(QRType), nullable=False, index=True)
-    reference_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    reference_id = Column(UUID(), nullable=False, index=True)
     is_used = Column(Boolean, default=False)
     used_at = Column(DateTime(timezone=True), nullable=True)
     scan_count = Column(Integer, default=0)

@@ -1,7 +1,7 @@
 """Payment model"""
 
 from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, Enum
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from app.core.types import UUID, JSONB
 from sqlalchemy.sql import func
 import uuid
 import enum
@@ -27,10 +27,10 @@ class Payment(Base):
     """Payment model"""
     __tablename__ = "payments"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     reference_type = Column(Enum(ReferenceType), nullable=False, index=True)
-    reference_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    reference_id = Column(UUID(), nullable=False, index=True)
     amount = Column(Numeric(10, 2), nullable=False)
     payment_method = Column(String(50), nullable=True)
     payment_status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING, index=True)

@@ -1,7 +1,7 @@
 """Route models"""
 
 from sqlalchemy import Column, String, Numeric, Integer, Boolean, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from app.core.types import UUID
 from sqlalchemy.sql import func
 import uuid
 
@@ -12,7 +12,7 @@ class Route(Base):
     """Route model"""
     __tablename__ = "routes"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     route_number = Column(String(50), unique=True, nullable=False, index=True)
     origin = Column(String(255), nullable=False)
     destination = Column(String(255), nullable=False)
@@ -30,8 +30,8 @@ class RouteStop(Base):
     """Route stop model"""
     __tablename__ = "route_stops"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    route_id = Column(UUID(as_uuid=True), ForeignKey("routes.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    route_id = Column(UUID(), ForeignKey("routes.id", ondelete="CASCADE"), nullable=False, index=True)
     stop_name = Column(String(255), nullable=False)
     stop_sequence = Column(Integer, nullable=False)
     distance_from_origin_km = Column(Numeric(10, 2), nullable=False)

@@ -1,7 +1,7 @@
 """Notification model"""
 
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum, Text
-from sqlalchemy.dialects.postgresql import UUID
+from app.core.types import UUID
 from sqlalchemy.sql import func
 import uuid
 import enum
@@ -21,8 +21,8 @@ class Notification(Base):
     """Notification model"""
     __tablename__ = "notifications"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     notification_type = Column(Enum(NotificationType), nullable=False)
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)

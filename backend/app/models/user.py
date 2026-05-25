@@ -1,12 +1,12 @@
 """User model"""
 
 from sqlalchemy import Column, String, Boolean, DateTime, Enum
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 import uuid
 import enum
 
 from app.core.database import Base
+from app.core.types import UUID
 
 
 class UserRole(str, enum.Enum):
@@ -20,7 +20,7 @@ class User(Base):
     """User model"""
     __tablename__ = "users"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     first_name = Column(String(100), nullable=False)
