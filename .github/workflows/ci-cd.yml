@@ -8,8 +8,8 @@ on:
 
 env:
   REGISTRY: docker.io
-  BACKEND_IMAGE_NAME: smartbuspass/backend
-  FRONTEND_IMAGE_NAME: smartbuspass/frontend
+  BACKEND_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME || 'smartbuspass' }}/smartbus-backend
+  FRONTEND_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME || 'smartbuspass' }}/smartbus-frontend
 
 jobs:
   # Backend Tests
