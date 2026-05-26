@@ -76,6 +76,14 @@ class Settings(BaseSettings):
             return v
         return values.get("REDIS_URL")
     
+    @validator("CORS_ORIGINS", pre=True)
+    def assemble_cors_origins(cls, v: any) -> List[str]:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, (list, str)):
+            return v
+        return ["http://localhost:3000", "http://localhost:8000"]
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
