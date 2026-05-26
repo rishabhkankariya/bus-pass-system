@@ -40,10 +40,25 @@ class AuthService:
             data={"sub": str(user.id)}
         )
         
+        # Create user response
+        from app.schemas.user import UserResponse
+        user_response = UserResponse(
+            id=user.id,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            phone=user.phone,
+            role=user.role,
+            is_active=user.is_active,
+            email_verified=user.email_verified,
+            created_at=user.created_at
+        )
+        
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
-            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=user_response
         )
     
     async def refresh_access_token(self, refresh_token: str) -> TokenResponse:

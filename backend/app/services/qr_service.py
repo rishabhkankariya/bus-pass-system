@@ -151,7 +151,6 @@ class QRService:
                 "booking_id": str(booking.id),
                 "seat_number": booking.seat_number,
                 "journey_date": booking.journey_date.isoformat(),
-                "passenger_name": f"{booking.user.first_name} {booking.user.last_name}",
                 "scan_count": qr_code.scan_count
             }
         
@@ -183,7 +182,6 @@ class QRService:
                 "pass_number": bus_pass.pass_number,
                 "valid_from": bus_pass.valid_from.isoformat(),
                 "valid_to": bus_pass.valid_to.isoformat(),
-                "passenger_name": f"{bus_pass.user.first_name} {bus_pass.user.last_name}",
                 "scan_count": qr_code.scan_count
             }
         

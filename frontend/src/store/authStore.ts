@@ -19,6 +19,7 @@ interface AuthState {
   register: (data: RegisterData) => Promise<void>
   logout: () => void
   fetchUser: () => Promise<void>
+  setUser: (user: User) => void
 }
 
 interface RegisterData {
@@ -94,6 +95,10 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           set({ user: null, isAuthenticated: false })
         }
+      },
+
+      setUser: (user: User) => {
+        set({ user })
       },
     }),
     {

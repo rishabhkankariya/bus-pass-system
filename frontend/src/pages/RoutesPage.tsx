@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
-import { MapPin, Clock, DollarSign, Bus, AlertCircle } from 'lucide-react'
+import { MapPin, Clock, Bus, AlertCircle, Search, X } from 'lucide-react'
 
 interface Route {
   id: string
@@ -10,10 +10,12 @@ interface Route {
   destination: string
   distance_km: number
   base_fare: number
+  fare: number
   is_active: boolean
 }
 
 export default function RoutesPage() {
+  const navigate = useNavigate()
   const [routes, setRoutes] = useState<Route[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -71,13 +73,22 @@ export default function RoutesPage() {
 
       {/* Search Bar */}
       <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Search by route number, origin, or destination..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input max-w-md"
-        />
+        <div className="relative max-w-md">
+          <Search className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by route number, origin, or destination..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input w-full pl-11 pr-10"
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {filteredRoutes.length === 0 ? (
@@ -139,19 +150,18 @@ export default function RoutesPage() {
                       <span>{route.distance_km} km</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <DollarSign className="h-4 w-4" />
-                      <span className="font-bold text-primary-600">${route.base_fare}</span>
+                      <span className="font-bold text-primary-600">₹{route.fare || route.base_fare}</span>
                     </div>
                   </div>
                 </div>
 
                 {route.is_active && (
-                  <Link
-                    to="/book-ticket"
+                  <button
+                    onClick={() => navigate('/book-ticket', { state: { route } })}
                     className="mt-4 w-full btn btn-primary text-center block"
                   >
                     Book Ticket
-                  </Link>
+                  </button>
                 )}
               </div>
             ))}

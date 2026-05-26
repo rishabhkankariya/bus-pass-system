@@ -1,497 +1,430 @@
 # Troubleshooting Guide
 
-## Common Issues and Solutions
+This guide helps you resolve common issues with the Smart Bus Pass System.
 
 ---
 
-## 🔴 Issue 1: Docker Desktop - "WSL needs updating"
+## 🚀 Quick Fixes
 
-### Symptoms
-- Docker Desktop shows error: "WSL needs updating"
-- Cannot start Docker containers
-- Docker Desktop stuck on starting
+### Backend Won't Start
 
-### Solution A: Quick Fix (Recommended)
-1. **Right-click** on `fix-wsl.bat`
-2. Select **"Run as Administrator"**
-3. Wait for completion
-4. Close Docker Desktop completely
-5. Open Docker Desktop again
+**Error**: `ImportError: cannot import name 'Pass' from 'app.models.pass_model'`
 
-### Solution B: Manual Fix
-Open **PowerShell as Administrator** and run:
+**Solution**: Fixed! The model is named `BusPass`, not `Pass`. Restart the backend.
+
 ```powershell
-wsl --update
-wsl --set-default-version 2
-```
-
-Then restart Docker Desktop.
-
-### Solution C: Full WSL Installation
-If WSL is not installed at all:
-```powershell
-# Run as Administrator
-wsl --install
-```
-
-Restart your computer, then start Docker Desktop.
-
-**See `FIX_DOCKER.md` for detailed instructions.**
-
----
-
-## 🔴 Issue 2: Port Already in Use
-
-### Symptoms
-```
-Error: bind: address already in use
-Port 8000/5432/6379 is already allocated
-```
-
-### Solution
-Check what's using the port:
-```powershell
-# Check port 8000
-netstat -ano | findstr :8000
-
-# Check port 5432 (PostgreSQL)
-netstat -ano | findstr :5432
-
-# Check port 6379 (Redis)
-netstat -ano | findstr :6379
-```
-
-Kill the process:
-```powershell
-# Replace PID with the process ID from above
-taskkill /PID <PID> /F
-```
-
-Or change the port in `docker-compose.yml`:
-```yaml
-ports:
-  - "8001:8000"  # Change 8000 to 8001
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload
 ```
 
 ---
 
-## 🔴 Issue 3: Docker Desktop Not Starting
+### AI Chatbot Returns "Sorry, I couldn't process your request"
 
-### Symptoms
-- Docker Desktop icon stays gray
-- "Docker Desktop starting..." never completes
-- Error: "Cannot connect to Docker daemon"
+**Cause**: Ollama is not running or not installed
 
-### Solution A: Restart Docker Desktop
-1. Close Docker Desktop completely (right-click icon → Quit)
-2. Wait 10 seconds
-3. Open Docker Desktop again
-4. Wait 2-3 minutes
+**Solution 1**: Use fallback mode (works without Ollama)
+- The chatbot now automatically uses vector search fallback
+- You'll still get route suggestions based on semantic similarity
+- Just restart the backend and try again
 
-### Solution B: Restart Docker Service
-Open PowerShell as Administrator:
+**Solution 2**: Install and start Ollama for full AI features
+
 ```powershell
-Restart-Service docker
-```
+# 1. Download Ollama from https://ollama.ai/download
+# 2. Install it
+# 3. Pull the model
+ollama pull llama3
 
-### Solution C: Reset Docker Desktop
-1. Open Docker Desktop
-2. Go to Settings → Troubleshoot
-3. Click "Reset to factory defaults"
-4. Restart Docker Desktop
+# 4. Start Ollama server
+ollama serve
 
-### Solution D: Check Virtualization
-1. Open Task Manager (Ctrl+Shift+Esc)
-2. Go to Performance tab
-3. Check if "Virtualization" is Enabled
-4. If disabled, enable it in BIOS
-
----
-
-## 🔴 Issue 4: Services Not Starting
-
-### Symptoms
-```
-docker-compose up -d
-# Services exit immediately or show unhealthy
-```
-
-### Solution
-Check logs:
-```powershell
-# View all logs
-docker-compose logs
-
-# View specific service
-docker-compose logs backend
-docker-compose logs postgres
-docker-compose logs redis
-```
-
-Common fixes:
-```powershell
-# Rebuild containers
-docker-compose down
-docker-compose up -d --build
-
-# Remove volumes and start fresh
-docker-compose down -v
-docker-compose up -d --build
+# 5. Restart backend
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload
 ```
 
 ---
 
-## 🔴 Issue 5: Backend API Not Responding
+### Database Not Found
 
-### Symptoms
-- `curl http://localhost:8000/health` fails
-- Cannot access http://localhost:8000/docs
-- Connection refused error
+**Error**: `sqlite3.OperationalError: no such table: routes`
 
-### Solution A: Wait Longer
-Services take 30-60 seconds to start:
-```powershell
-# Check if backend is running
-docker-compose ps backend
-
-# Wait and check logs
-docker-compose logs -f backend
-```
-
-### Solution B: Check Backend Logs
-```powershell
-docker-compose logs backend
-```
-
-Look for errors like:
-- Database connection failed → PostgreSQL not ready
-- Redis connection failed → Redis not ready
-- Import errors → Missing dependencies
-
-### Solution C: Restart Backend
-```powershell
-docker-compose restart backend
-```
-
----
-
-## 🔴 Issue 6: Database Connection Failed
-
-### Symptoms
-Backend logs show:
-```
-could not connect to server
-Connection refused
-```
-
-### Solution
-```powershell
-# Check if postgres is healthy
-docker-compose ps postgres
-
-# Check postgres logs
-docker-compose logs postgres
-
-# Restart postgres
-docker-compose restart postgres
-
-# Wait 10 seconds
-Start-Sleep -Seconds 10
-
-# Restart backend
-docker-compose restart backend
-```
-
----
-
-## 🔴 Issue 7: Redis Connection Failed
-
-### Symptoms
-Backend logs show:
-```
-Error connecting to Redis
-Connection refused
-```
-
-### Solution
-```powershell
-# Check if redis is healthy
-docker-compose ps redis
-
-# Test redis manually
-docker-compose exec redis redis-cli -a redis PING
-# Should return: PONG
-
-# Restart redis
-docker-compose restart redis
-```
-
----
-
-## 🔴 Issue 8: Frontend Not Loading
-
-### Symptoms
-- http://localhost:3000 not accessible
-- Frontend container exits
-
-### Solution
-The frontend is not built yet (Phase 5). For now:
-- Use the API directly: http://localhost:8000/docs
-- Test with curl or Postman
-- Frontend will be built in Phase 5
-
----
-
-## 🔴 Issue 9: "Permission Denied" Errors
-
-### Symptoms
-```
-Permission denied
-Cannot create directory
-```
-
-### Solution
-Run PowerShell as Administrator:
-1. Right-click PowerShell
-2. Select "Run as Administrator"
-3. Navigate to project directory
-4. Run commands again
-
----
-
-## 🔴 Issue 10: Out of Memory
-
-### Symptoms
-- Docker Desktop crashes
-- Services randomly stop
-- "Out of memory" errors
-
-### Solution
-Increase Docker memory:
-1. Open Docker Desktop
-2. Go to Settings → Resources
-3. Increase Memory to at least 8GB
-4. Click "Apply & Restart"
-
----
-
-## 🔴 Issue 11: Slow Performance
-
-### Symptoms
-- Services take very long to start
-- API responses are slow
-- Docker Desktop uses too much CPU
-
-### Solution A: Allocate More Resources
-1. Open Docker Desktop → Settings → Resources
-2. Increase CPUs to 4
-3. Increase Memory to 8GB
-4. Click "Apply & Restart"
-
-### Solution B: Clean Up Docker
-```powershell
-# Remove unused containers
-docker container prune -f
-
-# Remove unused images
-docker image prune -a -f
-
-# Remove unused volumes
-docker volume prune -f
-
-# Remove everything unused
-docker system prune -a -f
-```
-
----
-
-## 🔴 Issue 12: Cannot Access API Documentation
-
-### Symptoms
-- http://localhost:8000/docs returns 404
-- Swagger UI not loading
-
-### Solution
-```powershell
-# Check if backend is running
-docker-compose ps backend
-
-# Check backend logs
-docker-compose logs backend
-
-# Restart backend
-docker-compose restart backend
-
-# Wait 30 seconds and try again
-Start-Sleep -Seconds 30
-curl http://localhost:8000/health
-```
-
----
-
-## 🔴 Issue 13: "Image Not Found" Errors
-
-### Symptoms
-```
-unable to get image 'postgres:15-alpine'
-unable to get image 'redis:7-alpine'
-```
-
-### Solution
-This means Docker cannot download images. Check:
-
-1. **Internet Connection**
-   - Make sure you're connected to internet
-   - Try: `ping google.com`
-
-2. **Docker Hub Access**
-   - Docker Hub might be down
-   - Check: https://status.docker.com/
-
-3. **Pull Images Manually**
-   ```powershell
-   docker pull postgres:15-alpine
-   docker pull redis:7-alpine
-   docker pull python:3.11-slim
-   ```
-
----
-
-## 🔴 Issue 14: Build Failures
-
-### Symptoms
-```
-ERROR: failed to solve
-failed to build
-```
-
-### Solution
-```powershell
-# Clean build cache
-docker builder prune -a -f
-
-# Rebuild from scratch
-docker-compose build --no-cache
-
-# Start services
-docker-compose up -d
-```
-
----
-
-## 🔴 Issue 15: Environment Variables Not Loading
-
-### Symptoms
-- Backend shows "SECRET_KEY not set"
-- Database connection uses wrong password
-
-### Solution
-```powershell
-# Check if .env exists
-Test-Path .env
-
-# If not, create it
-Copy-Item .env.example .env
-
-# Restart services to load new env
-docker-compose down
-docker-compose up -d
-```
-
----
-
-## 🟢 Verification Commands
-
-Use these to verify everything is working:
+**Solution**: Make sure you're running commands from the correct directory
 
 ```powershell
-# 1. Check Docker is running
-docker ps
+# Check if database exists
+Test-Path backend\smart_bus_pass.db
 
-# 2. Check all services are up
-docker-compose ps
+# If not, import data
+.\import-pmpml-data.ps1
+```
 
-# 3. Check backend health
-curl http://localhost:8000/health
+---
 
-# 4. Check database
-docker-compose exec postgres psql -U postgres -d smart_bus_pass_db -c "SELECT 1;"
+### Virtual Environment Not Found
 
-# 5. Check redis
-docker-compose exec redis redis-cli -a redis PING
+**Error**: `venv\Scripts\Activate.ps1 not found`
 
-# 6. View all logs
-docker-compose logs --tail=50
+**Solution**: Create the virtual environment
+
+```powershell
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -r requirements-ai.txt
+```
+
+---
+
+## 🤖 AI Chatbot Issues
+
+### Chatbot Modes
+
+The chatbot has 3 modes:
+
+1. **Full AI Mode** (Ollama running)
+   - Natural language understanding
+   - Conversational responses
+   - Context-aware suggestions
+
+2. **Vector Search Mode** (Ollama not running, embeddings available)
+   - Semantic similarity search
+   - Accurate route matching
+   - Fast responses
+
+3. **Keyword Mode** (Fallback)
+   - Simple keyword matching
+   - Basic route search
+   - Always works
+
+### How to Check Current Mode
+
+Look at backend startup logs:
+
+```
+✓ Ollama LLM initialized          → Full AI Mode
+⚠ Ollama not available            → Vector Search Mode
+AI initialization error           → Keyword Mode
+```
+
+### Improving Chatbot Responses
+
+**For Full AI Mode**:
+```powershell
+# Make sure Ollama is running
+ollama serve
+
+# Check if model is downloaded
+ollama list
+
+# If llama3 not listed, pull it
+ollama pull llama3
+```
+
+**For Vector Search Mode**:
+```powershell
+# Refresh embeddings
+.\refresh-embeddings.ps1
+```
+
+**For Keyword Mode**:
+- Use specific queries like "routes from X to Y"
+- Include location names in your query
+- Try different phrasings
+
+---
+
+## 📊 Database Issues
+
+### Check Database Status
+
+```powershell
+python check_tables.py
+```
+
+Expected output:
+```
+Tables in database:
+  - users (Rows: 1)
+  - routes (Rows: 1030)
+  - buses (Rows: 0)
+  ...
+```
+
+### Re-import PMPML Data
+
+```powershell
+.\import-pmpml-data.ps1
+```
+
+### Reset Database
+
+```powershell
+# Backup first!
+Copy-Item backend\smart_bus_pass.db backend\smart_bus_pass.db.backup
+
+# Delete and recreate
+Remove-Item backend\smart_bus_pass.db
+
+# Run migrations (if you have them)
+# Or import data again
+.\import-pmpml-data.ps1
+```
+
+---
+
+## 🔧 Dependency Issues
+
+### AI Dependencies Not Installed
+
+**Error**: `ModuleNotFoundError: No module named 'langchain'`
+
+**Solution**:
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+pip install -r requirements-ai.txt
+```
+
+### Conflicting Dependencies
+
+**Solution**: Reinstall all dependencies
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+pip uninstall -y -r requirements.txt
+pip install -r requirements.txt
+pip install -r requirements-ai.txt
+```
+
+---
+
+## 🌐 Frontend Issues
+
+### Frontend Won't Start
+
+**Error**: `npm: command not found`
+
+**Solution**: Install Node.js from https://nodejs.org/
+
+**Error**: `Module not found`
+
+**Solution**:
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+### API Connection Failed
+
+**Check**:
+1. Backend is running on http://localhost:8000
+2. Frontend .env has correct API URL
+3. CORS is configured properly
+
+```env
+# frontend/.env
+VITE_API_URL=http://localhost:8000
+```
+
+---
+
+## 🔐 Authentication Issues
+
+### Can't Login
+
+**Check**:
+1. User exists in database
+2. Password is correct
+3. Backend is running
+
+**Create test user**:
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+python -c "from app.core.database import SessionLocal; from app.models.user import User; from app.core.security import get_password_hash; db = SessionLocal(); user = User(email='test@example.com', password_hash=get_password_hash('Test123!@#'), first_name='Test', last_name='User', role='passenger'); db.add(user); db.commit(); print('User created')"
+```
+
+---
+
+## 📝 Common Error Messages
+
+### "Failed to send telemetry event"
+
+**Cause**: ChromaDB telemetry issue (harmless)
+
+**Solution**: Ignore this warning, it doesn't affect functionality
+
+### "LangChainDeprecationWarning"
+
+**Cause**: Using older LangChain version
+
+**Solution**: These are warnings, not errors. System works fine.
+
+### "Ollama connection refused"
+
+**Cause**: Ollama not running
+
+**Solution**: Start Ollama with `ollama serve` or use fallback mode
+
+---
+
+## 🎯 Testing Checklist
+
+### Backend Health Check
+
+```powershell
+# 1. Start backend
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload
+
+# 2. Open browser
+# Visit: http://localhost:8000/docs
+
+# 3. Test health endpoint
+# Visit: http://localhost:8000/health
+```
+
+### AI Chatbot Test
+
+```powershell
+# 1. Check embeddings exist
+Test-Path backend\data\chroma_db
+
+# 2. Start backend
+cd backend
+python -m uvicorn app.main:app --reload
+
+# 3. Test via API docs
+# Visit: http://localhost:8000/docs
+# Try: POST /api/v1/chatbot/message
+```
+
+### Frontend Test
+
+```powershell
+# 1. Start frontend
+cd frontend
+npm run dev
+
+# 2. Open browser
+# Visit: http://localhost:3000
+
+# 3. Try chatbot
+# Visit: http://localhost:3000/ai-assistant
 ```
 
 ---
 
 ## 🆘 Still Having Issues?
 
-### Complete Reset
-If nothing works, do a complete reset:
+### Collect Debug Information
 
 ```powershell
-# 1. Stop everything
-docker-compose down -v
+# 1. Check Python version
+python --version
 
-# 2. Remove all containers
-docker container prune -f
+# 2. Check Node version
+node --version
 
-# 3. Remove all images
-docker image prune -a -f
+# 3. Check installed packages
+cd backend
+.\venv\Scripts\Activate.ps1
+pip list > installed_packages.txt
 
-# 4. Remove all volumes
-docker volume prune -f
+# 4. Check database
+python check_tables.py > database_status.txt
 
-# 5. Restart Docker Desktop
-
-# 6. Start fresh
-docker-compose up -d --build
+# 5. Check backend logs
+# Copy error messages from terminal
 ```
 
-### Get Help
-1. Check logs: `docker-compose logs`
-2. Check Docker Desktop logs: Settings → Troubleshoot → View logs
-3. Check Windows Event Viewer for system errors
-4. Search error message on Google/Stack Overflow
+### Reset Everything
 
----
-
-## 📋 Quick Reference
-
-### Start System
 ```powershell
-.\start-system.ps1
-```
+# 1. Backup database
+Copy-Item backend\smart_bus_pass.db backend\smart_bus_pass.db.backup
 
-### Check Status
-```powershell
-docker-compose ps
-```
+# 2. Delete virtual environment
+Remove-Item -Recurse -Force backend\venv
 
-### View Logs
-```powershell
-docker-compose logs -f
-```
+# 3. Recreate environment
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -r requirements-ai.txt
 
-### Restart Service
-```powershell
-docker-compose restart backend
-```
+# 4. Re-import data
+cd ..
+.\import-pmpml-data.ps1
 
-### Stop System
-```powershell
-docker-compose down
-```
+# 5. Refresh embeddings
+.\refresh-embeddings.ps1
 
-### Complete Reset
-```powershell
-docker-compose down -v
-docker system prune -a -f
-docker-compose up -d --build
+# 6. Start backend
+cd backend
+python -m uvicorn app.main:app --reload
 ```
 
 ---
 
-**Most Common Fix**: Update WSL with `wsl --update` and restart Docker Desktop.
+## 📞 Quick Reference
+
+### Start Everything
+
+```powershell
+# Terminal 1: Ollama (optional, for full AI)
+ollama serve
+
+# Terminal 2: Backend
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload
+
+# Terminal 3: Frontend
+cd frontend
+npm run dev
+```
+
+### URLs
+
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Frontend**: http://localhost:3000
+- **AI Chatbot**: http://localhost:3000/ai-assistant
+
+### Key Files
+
+- **Database**: `backend/smart_bus_pass.db`
+- **Embeddings**: `backend/data/chroma_db/`
+- **Backend Config**: `backend/.env`
+- **Frontend Config**: `frontend/.env`
+
+---
+
+## ✅ System Requirements
+
+### Minimum
+- Python 3.11+
+- Node.js 18+
+- 4 GB RAM
+- 5 GB disk space
+
+### Recommended
+- Python 3.11+
+- Node.js 18+
+- 8 GB RAM
+- 10 GB disk space
+- Ollama installed
+
+---
+
+**Last Updated**: May 26, 2026
+

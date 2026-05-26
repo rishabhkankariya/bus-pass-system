@@ -1,6 +1,7 @@
 """Authentication endpoints"""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -33,20 +34,30 @@ async def register(
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    credentials: UserLogin,
+    form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
     """
-    Login with email and password
+    Login with email and password (OAuth2 compatible)
     
     Returns JWT access token and refresh token
     
-    - **email**: User's email address
+    - **username**: User's email address
     - **password**: User's password
     """
+    # Convert OAuth2 form to UserLogin schema
+    credentials = UserLogin(email=form_data.username, password=form_data.password)
+    
     auth_service = AuthService(db)
-    tokens = await auth_service.authenticate(credentials)
-    return tokens
+    try:
+        tokens = await auth_service.authenticate(credentials)
+        return tokens
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 @router.post("/refresh", response_model=TokenResponse)

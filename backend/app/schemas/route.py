@@ -18,6 +18,28 @@ class RouteStopResponse(BaseModel):
         from_attributes = True
 
 
+class RouteCreate(BaseModel):
+    """Route creation schema"""
+    route_number: str
+    origin: str
+    destination: str
+    distance_km: Decimal
+    estimated_duration_minutes: int
+    base_fare: Decimal
+    is_active: bool = True
+
+
+class RouteUpdate(BaseModel):
+    """Route update schema"""
+    route_number: str | None = None
+    origin: str | None = None
+    destination: str | None = None
+    distance_km: Decimal | None = None
+    estimated_duration_minutes: int | None = None
+    base_fare: Decimal | None = None
+    is_active: bool | None = None
+
+
 class RouteResponse(BaseModel):
     """Route response schema"""
     id: UUID
@@ -28,6 +50,7 @@ class RouteResponse(BaseModel):
     estimated_duration_minutes: int
     is_active: bool
     created_at: datetime
+    fare: Decimal | None = None
     
     class Config:
         from_attributes = True
