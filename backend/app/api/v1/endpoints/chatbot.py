@@ -168,3 +168,32 @@ async def refresh_embeddings(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to refresh embeddings: {str(e)}"
         )
+
+
+# AI router for /api/v1/ai prefix compatibility
+ai_router = APIRouter()
+
+
+@ai_router.post("/chat", response_model=ChatMessageResponse)
+async def send_ai_chat(
+    request: ChatMessageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Send message to AI chatbot and get response (compatibility endpoint)
+    """
+    try:
+        response = await ChatbotService.send_message(
+            db=db,
+            user_id=current_user.id,
+            message=request.message,
+            session_id=request.session_id,
+            language=request.language
+        )
+        return response
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process message: {str(e)}"
+        )

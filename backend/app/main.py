@@ -1,9 +1,9 @@
 """Main FastAPI application"""
 
-from fastapi import FastAPI, Request, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI, Request, status  # pyrefly: ignore [missing-import]
+from fastapi.middleware.cors import CORSMiddleware  # pyrefly: ignore [missing-import]
+from fastapi.responses import JSONResponse  # pyrefly: ignore [missing-import]
+from fastapi.exceptions import RequestValidationError  # pyrefly: ignore [missing-import]
 from contextlib import asynccontextmanager
 import time
 import logging
@@ -35,10 +35,19 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Redis not available: {e}. Caching will be disabled.")
         # Continue without Redis - it's optional for development
     
-    # Create database tables (for development only)
-    if settings.DEBUG:
-        logger.info("Creating database tables...")
-        Base.metadata.create_all(bind=engine)
+    # Create database tables and seed data
+    logger.info("Running database tables initialization and seeding...")
+    try:
+        from app.core.seeding import seed_database
+        from app.core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            seed_database(db)
+        finally:
+            db.close()
+        logger.info("✓ Database initialization and seeding check complete")
+    except Exception as e:
+        logger.error(f"Error during database initialization/seeding: {e}", exc_info=True)
     
     logger.info("Application startup complete")
     
@@ -68,15 +77,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS
-origins = list(settings.CORS_ORIGINS)
-if "https://smart-bus-pmpml.vercel.app" not in origins:
-    origins.append("https://smart-bus-pmpml.vercel.app")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -151,7 +155,7 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn  # pyrefly: ignore [missing-import]
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",

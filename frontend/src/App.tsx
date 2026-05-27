@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 
@@ -59,6 +60,15 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 // ── App ───────────────────────────────────────────────────────────────────────
 
 function App() {
+  const { fetchUser } = useAuthStore()
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      fetchUser()
+    }
+  }, [fetchUser])
+
   return (
     <Router>
       <Routes>

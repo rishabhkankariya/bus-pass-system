@@ -78,9 +78,15 @@ class Settings(BaseSettings):
     
     @validator("CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v: any) -> List[str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+        if isinstance(v, str):
+            if v.startswith("[") and v.endswith("]"):
+                import json
+                try:
+                    return json.loads(v)
+                except Exception:
+                    pass
+            return [i.strip() for i in v.split(",") if i.strip()]
+        elif isinstance(v, list):
             return v
         return ["http://localhost:3000", "http://localhost:8000"]
     

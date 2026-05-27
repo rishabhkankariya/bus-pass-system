@@ -46,6 +46,7 @@ class UserResponse(UserBase):
     is_active: bool
     email_verified: bool
     created_at: datetime
+    full_name: Optional[str] = None
     
     class Config:
         from_attributes = True

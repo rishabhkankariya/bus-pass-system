@@ -288,143 +288,178 @@ Answer:"""
             return await self._fallback_response(query)
     
     async def _fallback_response(self, query: str) -> Dict[str, Any]:
-        """Fallback response when AI is not available - optimized for speed"""
+        """Intelligent fallback response when LLM/Ollama is not available"""
+        import re
+        from app.models.pass_model import PassType
+        
         query_lower = query.lower()
         routes = []
+        answer = ""
+        suggestions = []
         
-        # Try vector search first if available (fastest method)
-        if self.vectorstore:
-            try:
-                docs = self.vectorstore.similarity_search(query, k=5)
-                for doc in docs:
-                    if doc.metadata:
-                        routes.append({
-                            "route_number": doc.metadata.get("route_number"),
-                            "origin": doc.metadata.get("origin"),
-                            "destination": doc.metadata.get("destination"),
-                            "distance_km": doc.metadata.get("distance_km"),
-                            "duration_minutes": doc.metadata.get("duration_minutes")
-                        })
-                
-                if routes:
-                    # Generate concise answer
-                    if len(routes) == 1:
-                        r = routes[0]
-                        answer = f"🚌 Found Route {r['route_number']}\n\n"
-                        answer += f"📍 {r['origin']} → {r['destination']}\n"
-                        answer += f"📏 {r['distance_km']} km • ⏱️ ~{r['duration_minutes']} min\n\n"
-                        answer += "Click 'Book' to reserve your seat!"
-                    else:
-                        answer = f"✅ Found {len(routes)} routes for you:\n\n"
-                        for i, r in enumerate(routes[:3], 1):
-                            answer += f"{i}. Route {r['route_number']}: {r['origin']} → {r['destination']}\n"
-                    
-                    return {
-                        "answer": answer.strip(),
-                        "routes": routes[:5],
-                        "suggestions": self._generate_suggestions(query, routes),
-                        "metadata": {"method": "vector_search", "response_time": "fast"}
-                    }
-            except Exception as e:
-                print(f"Vector search error: {e}")
+        # 1. Check if user is asking for pass information
+        if any(w in query_lower for w in ["pass", "passes", "ticket price", "concession"]):
+            pass_types = self.db.query(PassType).filter(PassType.is_active == True).limit(5).all()
+            answer = "🎫 **PMPML Bus Pass Recommendations**\n\n"
+            answer += "PMPML offers several digital passes for commuters in Pune:\n\n"
+            for pt in pass_types:
+                price_str = f"₹{pt.price:.0f}" if pt.price > 0 else "FREE"
+                answer += f"• **{pt.pass_name}**: {price_str} (Valid for {pt.validity_days} days). {pt.description}\n"
+            answer += "\nTo purchase a pass, please go to the **Buy Pass** page from the sidebar!"
+            suggestions = ["Daily Pass PMC", "Student Monthly Pass", "Women Special Pass"]
+            return {
+                "answer": answer.strip(),
+                "routes": [],
+                "suggestions": suggestions,
+                "metadata": {"method": "rules_passes"}
+            }
+            
+        # 2. Check if user is asking for timings/schedules
+        is_timing_query = any(w in query_lower for w in ["timing", "timings", "schedule", "frequency", "first bus", "last bus", "time"])
         
-        # Fast keyword-based search (fallback)
-        # Extract location names using simple pattern matching
-        locations = []
+        # 3. Extract locations and route numbers
+        route_number_match = re.search(r'\b(\d+[a-zA-Z]?|[a-zA-Z]\d+)\b', query_lower)
+        route_number = route_number_match.group(1).upper() if route_number_match else None
         
-        # Common patterns
-        if "from" in query_lower and "to" in query_lower:
-            parts = query_lower.split("from")
-            if len(parts) > 1:
-                rest = parts[1].split("to")
-                if len(rest) > 1:
-                    origin = rest[0].strip().split()[0]  # First word
-                    destination = rest[1].strip().split()[0]  # First word
-                    locations = [origin, destination]
-        elif "at" in query_lower or "near" in query_lower:
-            # Extract location after "at" or "near"
-            for word in ["at", "near"]:
-                if word in query_lower:
-                    parts = query_lower.split(word)
-                    if len(parts) > 1:
-                        location = parts[1].strip().split()[0]
-                        locations = [location]
-                        break
+        # Extract location keywords (split query into words and match against known areas)
+        known_areas = ["swargate", "katraj", "hinjewadi", "hadapsar", "kothrud", "baner", "pune station", "shivajinagar", "wagholi", "alandi", "nigdi", "dhayari", "warje", "bhosari", "akurdi", "chinchwad", "karvenagar", "kondhwa"]
+        matched_locations = [area for area in known_areas if area in query_lower]
         
-        # Search by extracted locations
-        if locations:
-            for location in locations:
-                if len(location) > 3:  # Skip very short words
-                    results = self.db.query(Route).filter(
-                        or_(
-                            Route.origin.ilike(f"%{location}%"),
-                            Route.destination.ilike(f"%{location}%")
-                        )
-                    ).limit(5).all()
-                    
-                    for route in results:
-                        route_dict = {
-                            "route_number": route.route_number,
-                            "origin": route.origin,
-                            "destination": route.destination,
-                            "distance_km": float(route.distance_km),
-                            "duration_minutes": route.estimated_duration_minutes
-                        }
-                        if route_dict not in routes:
-                            routes.append(route_dict)
+        # Check if we can identify origin and destination
+        origin = None
+        destination = None
         
-        # If still no results, search all words
-        if not routes:
-            words = [w for w in query_lower.split() if len(w) > 4]
-            for word in words[:3]:  # Check first 3 meaningful words
-                results = self.db.query(Route).filter(
+        # Pattern: "from X to Y"
+        from_to_match = re.search(r'from\s+([a-zA-Z0-9\s]+?)\s+to\s+([a-zA-Z0-9\s]+)', query_lower)
+        if from_to_match:
+            origin_candidate = from_to_match.group(1).strip()
+            dest_candidate = from_to_match.group(2).strip()
+            # Clean up candidates
+            for area in known_areas:
+                if area in origin_candidate:
+                    origin = area
+                if area in dest_candidate:
+                    destination = area
+        
+        if not origin and len(matched_locations) >= 2:
+            origin = matched_locations[0]
+            destination = matched_locations[1]
+        elif not origin and len(matched_locations) == 1:
+            destination = matched_locations[0]
+            
+        # 4. Perform database search based on extracted info
+        db_routes = []
+        if route_number:
+            db_routes = self.db.query(Route).filter(
+                Route.route_number.ilike(f"%{route_number}%")
+            ).all()
+        elif origin and destination:
+            db_routes = self.db.query(Route).filter(
+                Route.origin.ilike(f"%{origin}%"),
+                Route.destination.ilike(f"%{destination}%")
+            ).all()
+            # If no direct route, look for any route containing destination, or origin
+            if not db_routes:
+                db_routes = self.db.query(Route).filter(
+                    or_(
+                        Route.origin.ilike(f"%{origin}%"),
+                        Route.destination.ilike(f"%{destination}%")
+                    )
+                ).limit(5).all()
+        elif destination:
+            db_routes = self.db.query(Route).filter(
+                or_(
+                    Route.origin.ilike(f"%{destination}%"),
+                    Route.destination.ilike(f"%{destination}%")
+                )
+            ).limit(5).all()
+            
+        # Fallback to general search if still empty
+        if not db_routes:
+            words = [w for w in query_lower.split() if len(w) > 3 and w not in ["show", "find", "buses", "bus", "route", "routes"]]
+            for word in words[:2]:
+                db_routes = self.db.query(Route).filter(
                     or_(
                         Route.origin.ilike(f"%{word}%"),
                         Route.destination.ilike(f"%{word}%"),
                         Route.route_number.ilike(f"%{word}%")
                     )
                 ).limit(5).all()
-                
-                for route in results:
-                    route_dict = {
-                        "route_number": route.route_number,
-                        "origin": route.origin,
-                        "destination": route.destination,
-                        "distance_km": float(route.distance_km),
-                        "duration_minutes": route.estimated_duration_minutes
-                    }
-                    if route_dict not in routes:
-                        routes.append(route_dict)
-                
-                if routes:
+                if db_routes:
                     break
-        
-        # Generate response
+
+        # Convert DB routes to return format
+        for r in db_routes:
+            fare = self._calculate_fare(r)
+            routes.append({
+                "id": str(r.id),
+                "route_number": r.route_number,
+                "origin": r.origin,
+                "destination": r.destination,
+                "distance_km": float(r.distance_km),
+                "duration_minutes": r.estimated_duration_minutes,
+                "fare": float(fare)
+            })
+
+        # 5. Build dynamic text response based on search results and query intent
         if routes:
-            if len(routes) == 1:
+            if origin and destination:
+                direct_route = next((r for r in routes if origin.lower() in r["origin"].lower() and destination.lower() in r["destination"].lower()), None)
+                if direct_route:
+                    answer = f"🚌 **Direct PMPML Route Found!**\n\n"
+                    answer += f"Take **Route {direct_route['route_number']}** from **{direct_route['origin']}** to **{direct_route['destination']}**.\n"
+                    answer += f"• **Distance**: {direct_route['distance_km']} km\n"
+                    answer += f"• **Travel Time**: ~{direct_route['duration_minutes']} minutes\n"
+                    answer += f"• **Standard Fare**: ₹{direct_route['fare']:.0f}\n\n"
+                    if is_timing_query:
+                        answer += "⏱️ **Schedules & Frequency**:\n"
+                        answer += "Buses run every 15 minutes during peak hours (7:00 AM – 10:00 AM, 5:00 PM – 8:00 PM) and every 30 minutes during off-peak hours. First bus departs at 5:00 AM; last bus at 11:30 PM.\n\n"
+                    answer += "You can book tickets for this journey directly below!"
+                else:
+                    # Indirect or multiple options
+                    answer = f"🗺️ **PMPML Routes from {origin.title()} to {destination.title()}**\n\n"
+                    answer += f"Here are the best options to travel between {origin.title()} and {destination.title()}:\n\n"
+                    for i, r in enumerate(routes[:3], 1):
+                        answer += f"{i}. **Route {r['route_number']}**: {r['origin']} → {r['destination']} ({r['distance_km']} km, ₹{r['fare']:.0f})\n"
+                    answer += f"\n*Interchange Suggestion*: If you don't find a direct connection, you can take a bus to Swargate or Shivajinagar and interchange to your final destination."
+            elif route_number:
                 r = routes[0]
-                answer = f"🚌 Route {r['route_number']}\n\n"
-                answer += f"📍 {r['origin']} → {r['destination']}\n"
-                answer += f"📏 {r['distance_km']} km • ⏱️ ~{r['duration_minutes']} min"
+                answer = f"🚌 **PMPML Route {r['route_number']} Details**\n\n"
+                answer += f"📍 **Route**: {r['origin']} To {r['destination']}\n"
+                answer += f"📏 **Distance**: {r['distance_km']} km\n"
+                answer += f"⏱️ **Estimated Duration**: ~{r['duration_minutes']} minutes\n"
+                answer += f"💰 **Ticket Fare**: ₹{r['fare']:.0f}\n\n"
+                answer += "**Operating Hours**:\n"
+                answer += "Service starts at 5:00 AM and runs till 11:30 PM daily with standard frequencies."
             else:
-                answer = f"✅ Found {len(routes)} routes:\n\n"
-                for i, r in enumerate(routes[:3], 1):
-                    answer += f"{i}. Route {r['route_number']}: {r['origin']} → {r['destination']}\n"
+                answer = f"🔍 **Found {len(routes)} relevant PMPML routes for you:**\n\n"
+                for i, r in enumerate(routes[:4], 1):
+                    answer += f"• **Route {r['route_number']}**: {r['origin']} → {r['destination']} (~{r['duration_minutes']} min, ₹{r['fare']:.0f})\n"
+                answer += "\nSelect a route from the cards below to view timetables or book a ticket!"
         else:
-            answer = "🔍 No routes found. Try:\n\n"
-            answer += "• 'Routes from Katraj to Hinjewadi'\n"
-            answer += "• 'Buses at Swargate'\n"
-            answer += "• 'Route 91U details'"
-        
+            # No routes matched
+            answer = "🔍 **No direct routes matching your query were found in our database.**\n\n"
+            answer += "Here are some popular search patterns you can try:\n"
+            answer += "• *'Routes from Katraj to Hinjewadi'*\n"
+            answer += "• *'Show bus route 100 details'*\n"
+            answer += "• *'What is the ticket price to Baner?'*\n"
+            answer += "• *'Bus timings from Swargate'*\n\n"
+            answer += "You can also browse the full list of 1030+ routes on the **Browse Routes** page!"
+
+        # 6. Generate dynamic suggestions
+        if routes:
+            suggestions.append(f"Book Route {routes[0]['route_number']}")
+            suggestions.append("Check pass options")
+            if len(routes) > 1:
+                suggestions.append(f"Details of Route {routes[1]['route_number']}")
+        else:
+            suggestions = ["Show Swargate routes", "Hinjewadi buses", "Compare passes"]
+
         return {
             "answer": answer.strip(),
             "routes": routes[:5],
-            "suggestions": self._generate_suggestions(query, routes) if routes else [
-                "Show all routes",
-                "Popular destinations",
-                "Pass information"
-            ],
-            "metadata": {"method": "keyword_search", "response_time": "fast"}
+            "suggestions": suggestions[:3],
+            "metadata": {"method": "intelligent_fallback_rules"}
         }
     
     def _generate_suggestions(self, query: str, routes: List[Dict]) -> List[str]:

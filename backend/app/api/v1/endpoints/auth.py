@@ -12,13 +12,13 @@ from app.services.user_service import UserService
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
     """
-    Register a new user
+    Register a new user and login automatically
     
     - **email**: Valid email address
     - **password**: Minimum 8 characters with uppercase, lowercase, digit, and special character
@@ -29,7 +29,13 @@ async def register(
     """
     user_service = UserService(db)
     user = await user_service.create(user_data)
-    return user
+    
+    # Auto-login: authenticate and return tokens
+    auth_service = AuthService(db)
+    from app.schemas.user import UserLogin
+    credentials = UserLogin(email=user_data.email, password=user_data.password)
+    tokens = await auth_service.authenticate(credentials)
+    return tokens
 
 
 @router.post("/login", response_model=TokenResponse)

@@ -51,7 +51,8 @@ class AuthService:
             role=user.role,
             is_active=user.is_active,
             email_verified=user.email_verified,
-            created_at=user.created_at
+            created_at=user.created_at,
+            full_name=user.full_name
         )
         
         return TokenResponse(
