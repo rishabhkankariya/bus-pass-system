@@ -89,11 +89,14 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchUser: async () => {
+        set({ isLoading: true })
         try {
           const response = await api.get('/api/v1/users/me')
-          set({ user: response.data, isAuthenticated: true })
+          set({ user: response.data, isAuthenticated: true, isLoading: false })
         } catch (error) {
-          set({ user: null, isAuthenticated: false })
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          set({ user: null, isAuthenticated: false, isLoading: false })
         }
       },
 

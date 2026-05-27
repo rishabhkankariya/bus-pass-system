@@ -59,8 +59,10 @@ export default function ManageRoutesPage() {
     try {
       setLoading(true);
       setError('');
-      const response = await api.get('/routes/');
-      setRoutes(response.data);
+      const response = await api.get('/routes/', {
+        params: { page_size: 2000 }
+      });
+      setRoutes(response.data.items || []);
     } catch (err: any) {
       console.error('Failed to fetch routes:', err);
       setError(err.response?.data?.detail || 'Failed to load routes');

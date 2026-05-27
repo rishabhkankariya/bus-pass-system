@@ -14,8 +14,8 @@ class Route(Base):
     
     id = Column(UUID(), primary_key=True, default=uuid.uuid4)
     route_number = Column(String(50), unique=True, nullable=False, index=True)
-    origin = Column(String(255), nullable=False)
-    destination = Column(String(255), nullable=False)
+    origin = Column(String(255), nullable=False, index=True)
+    destination = Column(String(255), nullable=False, index=True)
     distance_km = Column(Numeric(10, 2), nullable=False)
     estimated_duration_minutes = Column(Integer, nullable=False)
     is_active = Column(Boolean, default=True, index=True)

@@ -116,13 +116,22 @@ export default function MainLayout() {
                         </div>
                         {USER_MENU.map(({ to, label, icon: Icon }) => (
                           <Link key={to} to={to}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              navigate(to);
+                              setUserMenuOpen(false);
+                            }}
                             className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
                             <Icon className="h-4 w-4 text-gray-400" />
                             {label}
                           </Link>
                         ))}
                         <div className="border-t border-gray-100 mt-1 pt-1">
-                          <button onClick={handleLogout}
+                          <button
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleLogout();
+                            }}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition">
                             <LogOut className="h-4 w-4" />
                             Sign Out

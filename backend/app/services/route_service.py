@@ -3,6 +3,7 @@
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from decimal import Decimal
 
 from app.models.route import Route
@@ -72,4 +73,49 @@ class RouteService:
             "is_active": route.is_active,
             "created_at": route.created_at,
             "fare": self._calculate_fare(route)
+        }
+    
+    async def get_active_routes_paginated(
+        self, page: int = 1, page_size: int = 20, search: Optional[str] = None
+    ) -> dict:
+        """Get active routes with pagination and search"""
+        query = self.db.query(Route).filter(Route.is_active == True)
+        
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Route.route_number.ilike(search_pattern),
+                    Route.origin.ilike(search_pattern),
+                    Route.destination.ilike(search_pattern)
+                )
+            )
+            
+        total = query.count()
+        pages = (total + page_size - 1) // page_size if total > 0 else 0
+        
+        # Calculate offset
+        offset = (page - 1) * page_size
+        routes = query.offset(offset).limit(page_size).all()
+        
+        items = []
+        for route in routes:
+            items.append({
+                "id": route.id,
+                "route_number": route.route_number,
+                "origin": route.origin,
+                "destination": route.destination,
+                "distance_km": route.distance_km,
+                "estimated_duration_minutes": route.estimated_duration_minutes,
+                "is_active": route.is_active,
+                "created_at": route.created_at,
+                "fare": self._calculate_fare(route)
+            })
+            
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "pages": pages
         }

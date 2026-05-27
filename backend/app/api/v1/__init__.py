@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import admin, auth, bookings, chatbot, ckan, passes, qr_codes, routes, users
+from app.api.v1.endpoints import admin, auth, bookings, chatbot, ckan, passes, qr_codes, routes, users, debug
 
 api_router = APIRouter()
 
@@ -17,3 +17,4 @@ api_router.include_router(admin.router, prefix="/admin", tags=["Admin Dashboard"
 api_router.include_router(chatbot.router, prefix="/chatbot", tags=["AI Chatbot"])
 api_router.include_router(chatbot.ai_router, prefix="/ai", tags=["AI Chatbot"])
 api_router.include_router(ckan.router, prefix="/ckan", tags=["CKAN Data"])
+api_router.include_router(debug.router, prefix="/debug", tags=["Debug"])

@@ -54,3 +54,12 @@ class RouteResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class RoutePaginationResponse(BaseModel):
+    """Route pagination response schema"""
+    items: List[RouteResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int

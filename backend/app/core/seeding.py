@@ -9,6 +9,7 @@ from decimal import Decimal
 from datetime import date, time
 import uuid
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.core.database import engine, Base
 from app.core.security import get_password_hash
@@ -138,6 +139,15 @@ def seed_database(db: Session):
     logger.info("Initializing database tables...")
     Base.metadata.create_all(bind=engine)
     
+    # Run index creation checks to optimize SQLite
+    try:
+        db.execute(text("CREATE INDEX IF NOT EXISTS idx_routes_origin ON routes (origin)"))
+        db.execute(text("CREATE INDEX IF NOT EXISTS idx_routes_destination ON routes (destination)"))
+        db.commit()
+        logger.info("✓ SQLite origin and destination indexes verified/created")
+    except Exception as e:
+        logger.warning(f"Could not create SQLite indexes: {e}")
+    
     # 1. Seed Admin User
     admin_email = "admin@smartbus.com"
     admin = db.query(User).filter(User.email == admin_email).first()
@@ -244,9 +254,9 @@ def seed_database(db: Session):
             logger.info("CSV dataset not found. Seeding fallback route list.")
             routes_to_seed = FALLBACK_ROUTES
 
-        # Limit to 50 routes for dev database size, ensuring at least 25
+        # Seed all routes from dataset
         seeded_routes = []
-        for r in routes_to_seed[:50]:
+        for r in routes_to_seed:
             # Double check uniqueness in memory
             if any(sr.route_number == r["route_number"] for sr in seeded_routes):
                 continue

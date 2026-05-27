@@ -30,7 +30,6 @@ export default function BookTicketPage() {
   const preSelected: Route | null = (location.state as any)?.route ?? null
 
   const [step, setStep] = useState(preSelected ? 2 : 1)
-  const [routes, setRoutes] = useState<Route[]>([])
   const [filteredRoutes, setFilteredRoutes] = useState<Route[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [schedules, setSchedules] = useState<Schedule[]>([])
@@ -46,10 +45,33 @@ export default function BookTicketPage() {
 
   const searchRef = useRef<HTMLInputElement>(null)
 
-  // Load routes list
+  const fetchRoutes = async (query: string) => {
+    try {
+      setLoading(true)
+      const res = await api.get('/api/v1/routes/', {
+        params: {
+          page: 1,
+          page_size: 50,
+          search: query || undefined
+        }
+      })
+      const items = res.data.items || []
+      setFilteredRoutes(items)
+    } catch {
+      setError('Failed to load routes')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch routes with debounce on search query change
   useEffect(() => {
-    fetchRoutes()
-  }, [])
+    const delayDebounceFn = setTimeout(() => {
+      fetchRoutes(searchQuery)
+    }, 300)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery])
 
   // If a route was pre-selected, load its schedules immediately
   useEffect(() => {
@@ -57,35 +79,6 @@ export default function BookTicketPage() {
       loadSchedules(preSelected.id)
     }
   }, [])
-
-  // Filter routes on search
-  useEffect(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) {
-      setFilteredRoutes(routes)
-    } else {
-      setFilteredRoutes(
-        routes.filter(r =>
-          r.route_number.toLowerCase().includes(q) ||
-          r.origin.toLowerCase().includes(q) ||
-          r.destination.toLowerCase().includes(q)
-        )
-      )
-    }
-  }, [searchQuery, routes])
-
-  const fetchRoutes = async () => {
-    try {
-      setLoading(true)
-      const res = await api.get('/api/v1/routes/')
-      setRoutes(res.data)
-      setFilteredRoutes(res.data)
-    } catch {
-      setError('Failed to load routes')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const loadSchedules = async (routeId: string) => {
     setScheduleLoading(true)

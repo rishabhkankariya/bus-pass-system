@@ -2,27 +2,32 @@
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from app.core.database import get_db
-from app.schemas.route import RouteResponse
+from app.schemas.route import RouteResponse, RoutePaginationResponse
 from app.services.route_service import RouteService
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[RouteResponse])
+@router.get("/", response_model=RoutePaginationResponse)
 async def get_all_routes(
+    page: int = 1,
+    page_size: int = 20,
+    search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
-    Get all active routes
+    Get all active routes with pagination and optional search
     
-    Returns list of all available bus routes
+    Returns paginated list of available bus routes
     """
     route_service = RouteService(db)
-    routes = await route_service.get_all_active_routes()
+    routes = await route_service.get_active_routes_paginated(
+        page=page, page_size=page_size, search=search
+    )
     return routes
 
 

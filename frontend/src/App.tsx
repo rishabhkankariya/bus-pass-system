@@ -40,7 +40,20 @@ import AdminSettingsPage from './pages/admin/AdminSettingsPage'
 // ── Guards ────────────────────────────────────────────────────────────────────
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, isLoading } = useAuthStore()
+  const hasToken = !!localStorage.getItem('access_token')
+
+  if (isLoading || (hasToken && !isAuthenticated)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+          <p className="mt-3 text-sm text-gray-500 font-medium">Verifying session...</p>
+        </div>
+      </div>
+    )
+  }
+
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
@@ -50,7 +63,20 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated, user, isLoading } = useAuthStore()
+  const hasToken = !!localStorage.getItem('access_token')
+
+  if (isLoading || (hasToken && !isAuthenticated)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+          <p className="mt-3 text-sm text-gray-500 font-medium">Verifying session...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!isAuthenticated) return <Navigate to="/admin/login" replace />
   const role = (user as any)?.role?.toLowerCase()
   if (role !== 'admin') return <Navigate to="/admin/login" replace />

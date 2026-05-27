@@ -20,16 +20,24 @@ export default function RoutesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
+  const [total, setTotal] = useState(0)
+  const [pages, setPages] = useState(0)
 
-  useEffect(() => {
-    fetchRoutes()
-  }, [])
-
-  const fetchRoutes = async () => {
+  const fetchRoutes = async (currentPage: number, currentPageSize: number, currentSearch: string) => {
     try {
       setLoading(true)
-      const response = await api.get('/api/v1/routes/')
-      setRoutes(response.data)
+      const response = await api.get('/api/v1/routes/', {
+        params: {
+          page: currentPage,
+          page_size: currentPageSize,
+          search: currentSearch || undefined
+        }
+      })
+      setRoutes(response.data.items || [])
+      setTotal(response.data.total || 0)
+      setPages(response.data.pages || 0)
     } catch (err: any) {
       setError('Failed to load routes')
     } finally {
@@ -37,16 +45,27 @@ export default function RoutesPage() {
     }
   }
 
-  const filteredRoutes = routes.filter((route) => {
-    const search = searchTerm.toLowerCase()
-    return (
-      route.route_number.toLowerCase().includes(search) ||
-      route.origin.toLowerCase().includes(search) ||
-      route.destination.toLowerCase().includes(search)
-    )
-  })
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchRoutes(page, pageSize, searchTerm)
+    }, 300)
 
-  if (loading) {
+    return () => clearTimeout(delayDebounceFn)
+  }, [page, pageSize, searchTerm])
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+    setPage(1)
+  }
+
+  const handleClearSearch = () => {
+    setSearchTerm('')
+    setPage(1)
+  }
+
+  const isInitialLoad = routes.length === 0 && loading
+
+  if (isInitialLoad) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center py-12">
@@ -72,26 +91,32 @@ export default function RoutesPage() {
       )}
 
       {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="relative max-w-md flex-1">
           <Search className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400" />
           <input
             type="text"
             placeholder="Search by route number, origin, or destination..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="input w-full pl-11 pr-10"
           />
           {searchTerm && (
-            <button onClick={() => setSearchTerm('')}
+            <button onClick={handleClearSearch}
               className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
+        {loading && !isInitialLoad && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+            <span>Updating...</span>
+          </div>
+        )}
       </div>
 
-      {filteredRoutes.length === 0 ? (
+      {routes.length === 0 ? (
         <div className="card text-center py-12">
           <Bus className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -104,11 +129,11 @@ export default function RoutesPage() {
       ) : (
         <>
           <div className="mb-4 text-sm text-gray-600">
-            Showing {filteredRoutes.length} {filteredRoutes.length === 1 ? 'route' : 'routes'}
+            Showing {routes.length} {routes.length === 1 ? 'route' : 'routes'} of {total} total
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRoutes.map((route) => (
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${loading ? 'opacity-50' : 'opacity-100'}`}>
+            {routes.map((route) => (
               <div key={route.id} className="card hover:shadow-lg transition">
                 <div className="flex items-start justify-between mb-4">
                   <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
@@ -166,6 +191,103 @@ export default function RoutesPage() {
               </div>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {pages > 1 && (
+            <div className="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
+              <div className="flex flex-1 justify-between sm:hidden">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  disabled={page >= pages}
+                  onClick={() => setPage(p => Math.min(pages, p + 1))}
+                  className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{(page - 1) * pageSize + 1}</span> to{' '}
+                    <span className="font-medium">
+                      {Math.min(page * pageSize, total)}
+                    </span>{' '}
+                    of <span className="font-medium">{total}</span> results
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {/* Page Size Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Show</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value))
+                        setPage(1)
+                      }}
+                      className="rounded-lg border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      {[12, 24, 48, 96].map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <button
+                      disabled={page <= 1}
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Previous</span>
+                      &lsaquo;
+                    </button>
+                    {Array.from({ length: pages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === pages || Math.abs(p - page) <= 2)
+                      .map((p, idx, arr) => {
+                        const showEllipsisBefore = idx > 0 && p - arr[idx - 1] > 1;
+                        return (
+                          <span key={p} className="flex">
+                            {showEllipsisBefore && (
+                              <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                                ...
+                              </span>
+                            )}
+                            <button
+                              onClick={() => setPage(p)}
+                              aria-current={p === page ? "page" : undefined}
+                              className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 ${
+                                p === page
+                                  ? "z-10 bg-primary-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                                  : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          </span>
+                        );
+                      })}
+                    <button
+                      disabled={page >= pages}
+                      onClick={() => setPage(p => Math.min(pages, p + 1))}
+                      className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Next</span>
+                      &rsaquo;
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
