@@ -5,6 +5,7 @@ Integrates with existing bus system to provide intelligent route assistance
 import os
 import json
 from typing import List, Dict, Any, Optional
+from decimal import Decimal
 from datetime import datetime
 import numpy as np
 from sqlalchemy.orm import Session
@@ -41,6 +42,26 @@ class AIRouteAssistant:
         
         if LANGCHAIN_AVAILABLE:
             self._initialize_ai()
+            
+    def _calculate_fare(self, route: Route) -> Decimal:
+        """Calculate fare for a route"""
+        from app.models.pricing import PricingRule
+        from decimal import Decimal
+        # Check if there's a pricing rule for this route
+        pricing_rule = self.db.query(PricingRule).filter(
+            PricingRule.route_id == route.id,
+            PricingRule.is_active == True
+        ).first()
+        
+        if pricing_rule:
+            return pricing_rule.base_price
+        
+        # Fallback calculation
+        BASE_FARE = Decimal("10.00")
+        PER_KM_RATE = Decimal("1.50")
+        fare = BASE_FARE + (route.distance_km * PER_KM_RATE)
+        fare = round(fare / 5) * 5  # Round to nearest ₹5
+        return max(Decimal("10.00"), min(fare, Decimal("100.00")))
     
     def _initialize_ai(self):
         """Initialize AI components"""
