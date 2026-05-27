@@ -159,7 +159,7 @@ def seed_database(db: Session):
             first_name="System",
             last_name="Admin",
             phone="1234567890",
-            role=UserRole.ADMIN,
+            role="admin",
             is_active=True,
             email_verified=True
         )
