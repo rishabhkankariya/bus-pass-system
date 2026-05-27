@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Smart Bus Pass System"
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
     
     # API
     API_V1_PREFIX: str = "/api/v1"
